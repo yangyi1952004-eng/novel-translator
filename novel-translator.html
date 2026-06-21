@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novel Translator — EN to MM</title>
+<style>
+  :root{
+    --ink:#1b1f23;
+    --paper:#faf8f4;
+    --paper-2:#f1ede4;
+    --line:#ddd6c7;
+    --accent:#a8472f;
+    --accent-soft:#f0ddd5;
+    --good:#3c6e47;
+    --good-soft:#e3eee2;
+    --bad:#a8472f;
+    --muted:#7a756a;
+    --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: "Noto Sans Myanmar", "Noto Sans", system-ui, -apple-system, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.5;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 80px;}
+  header{padding:8px 0 20px;border-bottom:2px solid var(--ink);margin-bottom:24px;}
+  header h1{font-size:1.4rem;margin:0 0 4px;letter-spacing:-0.01em;}
+  header p{margin:0;color:var(--muted);font-size:0.9rem;}
+
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .num{
+    width:20px;height:20px;border-radius:50%;
+    background:var(--ink);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.7rem;font-weight:700;
+  }
+
+  label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;}
+  .hint{font-size:0.8rem;color:var(--muted);margin:4px 0 12px;}
+  input[type=text], input[type=password]{
+    width:100%;padding:10px 12px;
+    border:1px solid var(--line);border-radius:7px;
+    font-size:0.95rem;font-family:var(--mono);
+    background:var(--paper-2);
+  }
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+  button{
+    font-family:inherit;font-size:0.9rem;font-weight:600;
+    border:none;border-radius:7px;padding:10px 16px;
+    cursor:pointer;transition:transform .05s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.98);}
+  button:disabled{opacity:0.45;cursor:not-allowed;}
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-primary:hover:not(:disabled){opacity:0.85;}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .btn-accent:hover:not(:disabled){opacity:0.85;}
+  .btn-ghost{background:var(--paper-2);color:var(--ink);border:1px solid var(--line);}
+  .btn-ghost:hover:not(:disabled){background:var(--line);}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+  .status-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:0.78rem;font-weight:600;padding:4px 10px;
+    border-radius:999px;
+  }
+  .pill-off{background:var(--paper-2);color:var(--muted);}
+  .pill-on{background:var(--good-soft);color:var(--good);}
+  .pill-err{background:var(--accent-soft);color:var(--bad);}
+
+  .folder-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 0;border-bottom:1px solid var(--line);
+    font-size:0.9rem;
+  }
+  .folder-row:last-child{border-bottom:none;}
+  .folder-row .fname{font-weight:600;}
+  .folder-row .fpath{color:var(--muted);font-size:0.8rem;font-family:var(--mono);}
+
+  table.gloss{width:100%;border-collapse:collapse;font-size:0.88rem;}
+  table.gloss th{
+    text-align:left;font-size:0.72rem;text-transform:uppercase;
+    color:var(--muted);padding:0 8px 8px;letter-spacing:0.04em;
+  }
+  table.gloss td{padding:4px 4px;vertical-align:middle;}
+  table.gloss input{
+    width:100%;padding:7px 9px;font-family:inherit;font-size:0.88rem;
+    background:var(--paper-2);
+  }
+  table.gloss .col-en input{font-family:var(--mono);}
+  .row-del{
+    width:30px;height:30px;border-radius:6px;background:transparent;
+    color:var(--muted);font-size:1rem;border:1px solid transparent;
+  }
+  .row-del:hover{background:var(--accent-soft);color:var(--bad);}
+
+  .progress-track{
+    height:8px;background:var(--paper-2);border-radius:99px;overflow:hidden;
+    margin:14px 0 6px;
+  }
+  .progress-fill{
+    height:100%;background:var(--accent);width:0%;
+    transition:width .3s ease;
+  }
+  .progress-label{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--muted);}
+
+  .log{
+    background:var(--ink);color:#d8d4c8;
+    font-family:var(--mono);font-size:0.78rem;
+    border-radius:8px;padding:12px 14px;
+    max-height:260px;overflow-y:auto;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .log .ok{color:#8fc98c;}
+  .log .err{color:#e08a78;}
+  .log .info{color:#9fb8d8;}
+  .log-row{padding:1px 0;}
+
+  details summary{cursor:pointer;font-size:0.85rem;color:var(--muted);margin-bottom:8px;}
+  textarea.glossary-import{
+    width:100%;min-height:80px;font-family:var(--mono);font-size:0.8rem;
+    padding:10px;border:1px solid var(--line);border-radius:7px;background:var(--paper-2);
+  }
+
+  .step-disabled{opacity:0.4;pointer-events:none;}
+  .opt-row{margin-bottom:14px;}
+  .opt-check{
+    display:flex;align-items:flex-start;gap:8px;
+    font-size:0.85rem;font-weight:400;margin-bottom:8px;cursor:pointer;
+  }
+  .opt-check input{margin-top:3px;flex-shrink:0;width:16px;height:16px;cursor:pointer;}
+  .opt-check span{color:var(--ink);}
+  .small-note{font-size:0.78rem;color:var(--muted);margin-top:6px;}
+  a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Novel Translator</h1>
+    <p>English → မြန်မာ · Drive ထဲက .txt ဖိုင်တွေကို Gemini နဲ့ glossary အတိုင်း တသမတ်တည်း ဘာသာပြန်မယ်</p>
+  </header>
+
+  <!-- STEP 1: Connect -->
+  <div class="card">
+    <h2><span class="num">1</span> ချိတ်ဆက်ခြင်း</h2>
+
+    <label for="clientId">Google OAuth Client ID</label>
+    <p class="hint">Google Cloud Console &rarr; APIs &amp; Services &rarr; Credentials ကနေ ယူထားတဲ့ Client ID (.apps.googleusercontent.com ဖြင့်ဆုံးတာ)</p>
+    <input type="text" id="clientId" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
+
+    <label for="geminiKey" style="margin-top:14px;">Gemini API Key</label>
+    <p class="hint">Google AI Studio ကနေ ယူထားတဲ့ key</p>
+    <input type="password" id="geminiKey" placeholder="AIza...">
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btnConnect">Google Drive ချိတ်ဆက်မယ်</button>
+      <span class="status-pill pill-off" id="connStatus">ချိတ်ဆက်ရန်လိုသေး</span>
+    </div>
+    <p class="small-note">Client ID ဘယ်လိုရမလဲ မသိရင် အောက်ကို ဆက်ဖတ်ပါ (setup guide)။ Key တွေက browser ထဲမှာပဲ သိမ်းမှာဖြစ်ပြီး ဘယ်ဆာဗာကိုမှ မပို့ပါ။</p>
+  </div>
+
+  <!-- STEP 2: Folders -->
+  <div class="card step-disabled" id="step2">
+    <h2><span class="num">2</span> ဖိုလ်ဒါများ ရွေးခြင်း</h2>
+    <div class="btn-row">
+      <button class="btn-ghost" id="btnPickSource">Source ဖိုလ်ဒါ ရွေးမယ် (novel_en)</button>
+      <button class="btn-ghost" id="btnPickTarget">Target ဖိုလ်ဒါ ရွေးမယ် (novel_mm)</button>
+    </div>
+    <div id="folderInfo" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- STEP 3: Glossary -->
+  <div class="card step-disabled" id="step3">
+    <h2><span class="num">3</span> Glossary (နာမည်၊ system terms၊ skills စသည်)</h2>
+    <p class="hint">ဒီစာရင်းမှာ ဇာတ်ကောင်အမည်၊ နေရာအမည်တွေ့သာမက — title/honorific, race, sect/organization, cultivation realm/stage, skill/technique, item, system term — အကုန်ပါနိုင်ပါတယ်။ Cap မထားပါ — entry ဘယ်လိုများများ Gemini ကို ဘာသာပြန်တိုင်း အကုန်ထည့်ပေးမှာဖြစ်ပြီး၊ အပိုင်းမည်မျှ ရှေ့ရောက်နေပါစေ နာမည်/term တွေ မပြောင်းတော့ပါ။</p>
+
+    <table class="gloss" id="glossTable">
+      <thead><tr><th style="width:42%">English</th><th style="width:42%">Myanmar</th><th></th></tr></thead>
+      <tbody id="glossBody"></tbody>
+    </table>
+    <div class="btn-row">
+      <button class="btn-ghost" id="btnAddRow">+ Row တိုး</button>
+      <button class="btn-primary" id="btnSaveGlossary">Glossary ကို Drive ထဲ သိမ်းမယ်</button>
+    </div>
+
+    <details style="margin-top:14px;">
+      <summary>CSV/စာရင်း တစ်ခါတည်း paste ထည့်ရန် (English, Myanmar တစ်လိုင်းစီ၊ comma ခွဲ)</summary>
+      <textarea class="glossary-import" id="glossImport" placeholder="John, ဂျွန်
+London, လန်ဒန်"></textarea>
+      <div class="btn-row">
+        <button class="btn-ghost" id="btnImportGloss">Import လုပ်မယ်</button>
+      </div>
+    </details>
+    <p class="small-note" id="glossSaveStatus"></p>
+  </div>
+
+  <!-- STEP 4: Translate -->
+  <div class="card step-disabled" id="step4">
+    <h2><span class="num">4</span> ဘာသာပြန်ခြင်း</h2>
+    <div id="chapterSummary" class="small-note" style="margin-bottom:10px;"></div>
+
+    <div class="opt-row">
+      <label class="opt-check"><input type="checkbox" id="optAutoGlossary" checked> <span>Auto-glossary — chapter ပြန်တိုင်း နာမည်/term အသစ်တွေကို Gemini နဲ့ ရှာပြီး glossary ထဲ auto-ထည့်မယ်</span></label>
+      <label class="opt-check"><input type="checkbox" id="optQualityCheck" checked> <span>Quality check — ပြန်ပြီးတဲ့ output ကို Gemini နဲ့ ပြန်စစ်ပြီး မစုံလင်ရင် (summarize ဖြစ်နေရင်) auto-retry လုပ်မယ်</span></label>
+      <p class="small-note">နှစ်ခုစလုံး ဖွင့်ထားရင် chapter တစ်ခုအတွက် API call ၂–၄ ကြိမ် အသုံးဖြစ်နိုင်ပါတယ် (quality ပိုကောင်းပါမယ်၊ အချိန်ပိုကြာနိုင်ပါတယ်)</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-accent" id="btnTranslate">ဘာသာပြန်စမယ် (ကျန်တာအားလုံး)</button>
+      <button class="btn-ghost" id="btnStop" disabled>ရပ်မယ်</button>
+    </div>
+
+    <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+    <div class="progress-label"><span id="progText">0 / 0</span><span id="progPct">0%</span></div>
+
+    <div class="log" id="logBox"></div>
+  </div>
+
+  <details class="card" style="font-size:0.85rem;">
+    <summary style="margin:0;">Client ID ဘယ်လိုရမလဲ (Setup Guide)</summary>
+    <ol style="padding-left:20px;color:var(--muted);">
+      <li><a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> ကို ဖွင့်ပါ၊ Project အသစ်တစ်ခု ဆောက်ပါ</li>
+      <li>"APIs &amp; Services" &rarr; "Library" &rarr; "Google Drive API" ကို ရှာပြီး Enable လုပ်ပါ</li>
+      <li>"APIs &amp; Services" &rarr; "Credentials" &rarr; "Create Credentials" &rarr; "OAuth client ID"</li>
+      <li>Application type: <b>Web application</b> ရွေးပါ</li>
+      <li>"Authorized JavaScript origins" မှာ ဒီစာမျက်နှာကို ဖွင့်နေတဲ့ URL ကို ထည့်ပါ (ဥပမာ <code>https://claude.site</code> သို့ ဖိုင်ကို ဖွင့်ထားတဲ့ origin)</li>
+      <li>Client ID ကို ကူးပြီး အပေါ်က field ထဲ ထည့်ပါ</li>
+      <li>"APIs &amp; Services" &rarr; "OAuth consent screen" မှာ test user အနေနဲ့ မိမိ Google account ကို ထည့်ထားရပါမယ် (App က verify မလုပ်ထားသေးရင်)</li>
+    </ol>
+  </details>
+
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
+
+<script>
+/* =========================================================
+   STATE
+========================================================= */
+const state = {
+  accessToken: null,
+  sourceFolderId: null,
+  sourceFolderName: null,
+  targetFolderId: null,
+  targetFolderName: null,
+  glossaryFileId: null, // file id of glossary.json inside target folder
+  glossary: [], // [{en, mm}]
+  chapters: [], // [{id, name}]
+  translatedNames: new Set(), // names already in target folder
+  stopRequested: false,
+  isTranslating: false,
+};
+
+const GEMINI_MODEL = "gemini-2.5-flash";
+
+/* =========================================================
+   UTIL
+========================================================= */
+function $(id){ return document.getElementById(id); }
+
+function log(msg, cls){
+  const row = document.createElement('div');
+  row.className = 'log-row ' + (cls||'');
+  const time = new Date().toLocaleTimeString('en-GB', {hour12:false});
+  row.textContent = `[${time}] ${msg}`;
+  $('logBox').appendChild(row);
+  $('logBox').scrollTop = $('logBox').scrollHeight;
+}
+
+function setStatus(pillId, text, kind){
+  const el = $(pillId);
+  el.textContent = text;
+  el.className = 'status-pill ' + (kind === 'on' ? 'pill-on' : kind === 'err' ? 'pill-err' : 'pill-off');
+}
+
+function enableStep(id){
+  $(id).classList.remove('step-disabled');
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* =========================================================
+   GOOGLE AUTH (OAuth token client, Drive scope)
+========================================================= */
+let tokenClient = null;
+
+function initTokenClient(){
+  const clientId = $('clientId').value.trim();
+  if(!clientId){
+    alert('Client ID ထည့်ပါ');
+    return null;
+  }
+  return google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/drive',
+    callback: (resp) => {
+      if(resp.error){
+        log('Auth error: ' + resp.error, 'err');
+        setStatus('connStatus', 'ချိတ်ဆက်မှု မအောင်မြင်', 'err');
+        return;
+      }
+      state.accessToken = resp.access_token;
+      setStatus('connStatus', 'ချိတ်ဆက်ပြီးပါပြီ', 'on');
+      log('Google Drive ချိတ်ဆက်ပြီးပါပြီ', 'ok');
+      enableStep('step2');
+    }
+  });
+}
+
+$('btnConnect').addEventListener('click', () => {
+  const geminiKey = $('geminiKey').value.trim();
+  if(!geminiKey){
+    alert('Gemini API key ထည့်ပါ');
+    return;
+  }
+  if(!tokenClient){
+    tokenClient = initTokenClient();
+  }
+  if(tokenClient){
+    tokenClient.requestAccessToken();
+  }
+});
+
+/* =========================================================
+   DRIVE HELPERS (REST, fetch-based — no gapi client needed)
+========================================================= */
+const DRIVE_API = 'https://www.googleapis.com/drive/v3';
+const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
+
+async function driveFetch(url, opts={}){
+  opts.headers = Object.assign({}, opts.headers, {
+    'Authorization': 'Bearer ' + state.accessToken
+  });
+  const res = await fetch(url, opts);
+  if(!res.ok){
+    const text = await res.text();
+    throw new Error(`Drive API error ${res.status}: ${text}`);
+  }
+  return res;
+}
+
+// Open Google Picker to choose a folder
+function openFolderPicker(onPicked){
+  gapi.load('picker', () => {
+    const clientId = $('clientId').value.trim();
+    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+      .setSelectFolderEnabled(true)
+      .setIncludeFolders(true);
+    const picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(state.accessToken)
+      .setCallback((data) => {
+        if(data.action === google.picker.Action.PICKED){
+          const doc = data.docs[0];
+          onPicked(doc.id, doc.name);
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+async function listTxtFiles(folderId){
+  let files = [];
+  let pageToken = null;
+  do {
+    const params = new URLSearchParams({
+      q: `'${folderId}' in parents and trashed = false and (mimeType='text/plain' or name contains '.txt')`,
+      fields: 'nextPageToken, files(id, name)',
+      pageSize: '1000',
+      orderBy: 'name'
+    });
+    if(pageToken) params.set('pageToken', pageToken);
+    const res = await driveFetch(`${DRIVE_API}/files?${params}`);
+    const data = await res.json();
+    files = files.concat(data.files || []);
+    pageToken = data.nextPageToken;
+  } while(pageToken);
+
+  // natural sort so chapter_2 comes before chapter_10
+  files.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+  return files;
+}
+
+async function readFileContent(fileId){
+  const res = await driveFetch(`${DRIVE_API}/files/${fileId}?alt=media`);
+  return await res.text();
+}
+
+async function findFileByName(folderId, name){
+  const params = new URLSearchParams({
+    q: `'${folderId}' in parents and trashed = false and name = '${name.replace(/'/g, "\\'")}'`,
+    fields: 'files(id, name)',
+  });
+  const res = await driveFetch(`${DRIVE_API}/files?${params}`);
+  const data = await res.json();
+  return (data.files && data.files[0]) || null;
+}
+
+async function uploadTextFile(folderId, name, content, existingFileId=null){
+  const metadata = existingFileId ? { name } : { name, parents: [folderId] };
+  const boundary = '-------novelxfer' + Math.random().toString(16).slice(2);
+  const body =
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    JSON.stringify(metadata) + `\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: text/plain; charset=UTF-8\r\n\r\n` +
+    content + `\r\n` +
+    `--${boundary}--`;
+
+  const url = existingFileId
+    ? `${UPLOAD_API}/files/${existingFileId}?uploadType=multipart`
+    : `${UPLOAD_API}/files?uploadType=multipart`;
+  const method = existingFileId ? 'PATCH' : 'POST';
+
+  const res = await driveFetch(url, {
+    method,
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body
+  });
+  return await res.json();
+}
+
+/* =========================================================
+   FOLDER PICKING
+========================================================= */
+$('btnPickSource').addEventListener('click', () => {
+  openFolderPicker((id, name) => {
+    state.sourceFolderId = id;
+    state.sourceFolderName = name;
+    renderFolderInfo();
+    refreshChapterList();
+  });
+});
+
+$('btnPickTarget').addEventListener('click', () => {
+  openFolderPicker(async (id, name) => {
+    state.targetFolderId = id;
+    state.targetFolderName = name;
+    renderFolderInfo();
+    await loadGlossaryFromDrive();
+    enableStep('step3');
+    refreshChapterList();
+  });
+});
+
+function renderFolderInfo(){
+  let html = '';
+  if(state.sourceFolderName){
+    html += `<div class="folder-row"><div><div class="fname">Source</div><div class="fpath">${escapeHtml(state.sourceFolderName)}</div></div><span class="status-pill pill-on">✓</span></div>`;
+  }
+  if(state.targetFolderName){
+    html += `<div class="folder-row"><div><div class="fname">Target</div><div class="fpath">${escapeHtml(state.targetFolderName)}</div></div><span class="status-pill pill-on">✓</span></div>`;
+  }
+  $('folderInfo').innerHTML = html;
+}
+
+/* =========================================================
+   GLOSSARY UI
+========================================================= */
+function renderGlossary(){
+  const tbody = $('glossBody');
+  tbody.innerHTML = '';
+  state.glossary.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="col-en"><input type="text" data-idx="${idx}" data-field="en" value="${escapeHtml(row.en)}"></td>
+      <td><input type="text" data-idx="${idx}" data-field="mm" value="${escapeHtml(row.mm)}"></td>
+      <td><button class="row-del" data-idx="${idx}" title="ဖျက်မယ်">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const idx = +e.target.dataset.idx;
+      const field = e.target.dataset.field;
+      state.glossary[idx][field] = e.target.value;
+    });
+  });
+  tbody.querySelectorAll('.row-del').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = +e.target.dataset.idx;
+      state.glossary.splice(idx, 1);
+      renderGlossary();
+    });
+  });
+}
+
+$('btnAddRow').addEventListener('click', () => {
+  state.glossary.push({en:'', mm:''});
+  renderGlossary();
+});
+
+$('btnImportGloss').addEventListener('click', () => {
+  const text = $('glossImport').value.trim();
+  if(!text) return;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  lines.forEach(line => {
+    const [en, mm] = line.split(',').map(s => s && s.trim());
+    if(en) state.glossary.push({en, mm: mm || ''});
+  });
+  renderGlossary();
+  $('glossImport').value = '';
+});
+
+async function loadGlossaryFromDrive(){
+  try {
+    const existing = await findFileByName(state.targetFolderId, 'glossary.json');
+    if(existing){
+      state.glossaryFileId = existing.id;
+      const content = await readFileContent(existing.id);
+      state.glossary = JSON.parse(content);
+      log(`Glossary ရှိနှင့်ပြီးသား ဖတ်ယူပါပြီ (${state.glossary.length} entries)`, 'info');
+    } else {
+      state.glossary = [];
+      log('Glossary file အသစ်ဖန်တီးမယ်', 'info');
+    }
+  } catch(err){
+    log('Glossary load error: ' + err.message, 'err');
+    state.glossary = [];
+  }
+  renderGlossary();
+}
+
+$('btnSaveGlossary').addEventListener('click', async () => {
+  if(!state.targetFolderId){ alert('Target ဖိုလ်ဒါ အရင်ရွေးပါ'); return; }
+  try {
+    const content = JSON.stringify(state.glossary, null, 2);
+    const result = await uploadTextFile(state.targetFolderId, 'glossary.json', content, state.glossaryFileId);
+    state.glossaryFileId = result.id;
+    $('glossSaveStatus').textContent = '✓ Glossary ကို Drive ထဲ သိမ်းပြီးပါပြီ — ' + new Date().toLocaleTimeString();
+    log('Glossary သိမ်းပြီးပါပြီ', 'ok');
+  } catch(err){
+    $('glossSaveStatus').textContent = '✕ သိမ်းရာတွင် မအောင်မြင်ပါ: ' + err.message;
+    log('Glossary save error: ' + err.message, 'err');
+  }
+});
+
+/* =========================================================
+   CHAPTER LIST + DIFF AGAINST TARGET
+========================================================= */
+async function refreshChapterList(){
+  if(!state.sourceFolderId || !state.targetFolderId) return;
+  try {
+    const [sourceFiles, targetFiles] = await Promise.all([
+      listTxtFiles(state.sourceFolderId),
+      listTxtFiles(state.targetFolderId)
+    ]);
+    state.chapters = sourceFiles;
+    state.translatedNames = new Set(targetFiles.map(f => f.name));
+    const remaining = state.chapters.filter(c => !state.translatedNames.has(c.name)).length;
+    $('chapterSummary').textContent =
+      `Source ထဲ စုစုပေါင်း ${state.chapters.length} ဖိုင် · Target ထဲ ပြီးပြီးသား ${state.translatedNames.size} ဖိုင် · ကျန်တာ ${remaining} ဖိုင်`;
+    enableStep('step4');
+    updateProgress(state.translatedNames.size, state.chapters.length);
+  } catch(err){
+    log('Chapter list error: ' + err.message, 'err');
+  }
+}
+
+function updateProgress(done, total){
+  const pct = total ? Math.round((done/total)*100) : 0;
+  $('progFill').style.width = pct + '%';
+  $('progText').textContent = `${done} / ${total}`;
+  $('progPct').textContent = pct + '%';
+}
+
+/* =========================================================
+   GEMINI TRANSLATION
+========================================================= */
+// Send the FULL glossary every time — no cap, no trimming.
+// Token cost is higher as the glossary grows, but name/term consistency
+// matters more than saving tokens for a novel-length project.
+function getFullGlossaryText(){
+  const valid = state.glossary.filter(g => g.en && g.mm);
+  return valid.map(g => `- ${g.en} -> ${g.mm}`).join('\n');
+}
+
+function buildPrompt(chapterText){
+  const glossLines = getFullGlossaryText();
+
+  return `You are a professional web novel translator specializing in translating English web novels into Burmese, working in genres such as Xianxia, Wuxia, System, Cultivation, Reincarnation, Adventure, and Action.
+Your task is to translate the following chapter with extreme detail and high quality.
+
+CRITICAL REQUIREMENTS:
+
+1. PURE BURMESE ONLY: The final translation must contain ONLY Burmese text. Absolutely NO English words, NO English alphabets, and NO foreign characters should be left in the translated text. Translate every single term, name, cultivation stage, skill name, or acronym into its Burmese equivalent or transliteration. Nothing should remain in English.
+
+2. DO NOT SKIP A SINGLE WORD: Translate every sentence, clause, and phrase from the original. Do not summarize, condense, shorten, or drop any sentence, paragraph, action beat, or line of dialogue — including small details, internal thoughts, scenery descriptions, and system/status messages. If the original chapter is long, the translation must be equally long and equally detailed. Treat every paragraph as mandatory, not optional.
+
+3. WRITE THE EMOTION, NOT JUST THE EVENT: This is a novel — readers need to feel what the character feels. Where the original conveys fear, anger, longing, pride, humiliation, excitement, etc., render that emotional weight fully in the Burmese prose (internal thoughts, body language, tone of dialogue) rather than flattening it into a plain statement of fact.
+
+4. VARY YOUR SENTENCE ENDINGS: Do not end every sentence the same way. Avoid repeatedly ending consecutive sentences with "သည်" or any single repeated ending. Use a natural mix of colloquial Burmese novel endings — တယ်၊ မယ်၊ ပြီ၊ နေတယ်၊ လိုက်တယ်၊ ခဲ့တယ်၊ ပါတယ် — the way a real published Burmese novel varies its prose rhythm. Avoid formal/written-register endings like သည်၊ ၏၊ သော — this should read like modern colloquial Burmese fiction, not a formal document.
+
+5. ENGAGING & NATURAL TONE: Use smooth, natural, highly engaging Burmese novel prose. Dialogue must reflect each character's voice and the original tone in proper Burmese literary style.
+
+6. STRICT GLOSSARY ADHERENCE — NAMES MUST NEVER VARY: The glossary below covers character names, place names, titles/honorifics, races, organizations, cultivation realms/stages, techniques/skills, items, and any world-specific terminology — not just character names. Every term in this list is LOCKED. You MUST use the EXACT Burmese term shown for every matching term, in every chapter, with zero variation — never spell or transliterate the same name two different ways even if many chapters have passed since it last appeared:
+${glossLines || '(glossary empty so far — use your best transliteration judgement, and try to be consistent if the same name reappears within this chapter)'}
+
+7. For any new proper noun, title, or term that is NOT in the glossary above, choose one clear, natural Burmese transliteration or translation and use that same form consistently for the rest of this chapter.
+
+8. Return ONLY the translated chapter text. No notes, no headings, no explanations, no "ဘာသာပြန်ချက်" labels.
+
+Original English Chapter:
+${chapterText}`;
+}
+
+async function callGemini(promptText, apiKey, attempt=1, maxAttempts=3){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: promptText }] }],
+    generationConfig: { temperature: 0.3 }
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify(body)
+    });
+
+    if(res.status === 429 && attempt < maxAttempts){
+      const wait = 5000 * attempt;
+      log(`Rate limit — ${wait/1000}s စောင့်ပြီး ထပ်ကြိုးစားမယ် (${attempt}/${maxAttempts})`, 'info');
+      await sleep(wait);
+      return callGemini(promptText, apiKey, attempt+1, maxAttempts);
+    }
+
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(`Gemini API ${res.status}: ${errText.slice(0,200)}`);
+    }
+
+    const data = await res.json();
+    const candidate = data.candidates && data.candidates[0];
+    if(!candidate){
+      throw new Error('Gemini response ထဲ candidate မရှိပါ (blocked/filtered ဖြစ်နိုင်သည်)');
+    }
+    const parts = candidate.content && candidate.content.parts;
+    if(!parts || !parts[0] || !parts[0].text){
+      throw new Error('Gemini response ထဲ စာသား မပါပါ');
+    }
+    return parts.map(p => p.text || '').join('');
+  } catch(err){
+    if(attempt < maxAttempts){
+      log(`Error: ${err.message} — ထပ်ကြိုးစားမယ် (${attempt}/${maxAttempts})`, 'info');
+      await sleep(3000 * attempt);
+      return callGemini(promptText, apiKey, attempt+1, maxAttempts);
+    }
+    throw err;
+  }
+}
+
+async function translateChunk(text, apiKey){
+  return callGemini(buildPrompt(text), apiKey);
+}
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// Cheap heuristic: if the Burmese output is drastically shorter than the
+// English source, it's very likely a summary rather than a full translation.
+function isTranslationTooShort(englishText, translatedText){
+  const engLen = englishText.trim().length;
+  const mmLen = translatedText.trim().length;
+  return mmLen < engLen * 0.3;
+}
+
+// Ask Gemini itself to compare start/end of both texts and flag if the
+// translation looks condensed or incomplete.
+async function isTranslationIncompleteByAI(englishText, translatedText, apiKey){
+  const checkPrompt = `You are a translation quality checker.
+
+Compare the original English chapter and its Burmese translation below.
+Check if the Burmese translation is a COMPLETE translation or just a SUMMARY/INCOMPLETE version.
+
+Respond with ONLY one word:
+- "COMPLETE" if the translation covers all the content fully
+- "INCOMPLETE" if the translation is summarized, condensed, or missing large parts
+
+Original English (first 500 chars):
+${englishText.slice(0,500)}
+
+Burmese Translation (first 500 chars):
+${translatedText.slice(0,500)}
+
+Original English (last 500 chars):
+${englishText.slice(-500)}
+
+Burmese Translation (last 500 chars):
+${translatedText.slice(-500)}
+
+Answer (COMPLETE or INCOMPLETE):`;
+
+  try {
+    const result = await callGemini(checkPrompt, apiKey, 1, 2);
+    return result.trim().toUpperCase().includes('INCOMPLETE');
+  } catch(err){
+    log(`   Quality check error: ${err.message} → character count ပဲ အကြောင်းပြချက်အဖြစ် သုံးမယ်`, 'info');
+    return false;
+  }
+}
+
+// Ask Gemini to extract proper nouns / world-building terms from a chapter
+// and return them as English -> Burmese pairs to merge into the glossary.
+async function extractGlossaryTerms(englishText, apiKey){
+  const prompt = `Analyze the following novel chapter and extract ALL important proper nouns, terms, and distinct vocabulary.
+
+This includes ALL of the following categories:
+- Characters (heroes, villains, side characters, historical figures)
+- Titles & honorifics (Lord, Elder, Sect Master, Young Master, etc.)
+- Races & species (humans, demons, dragons, beasts, spirits, etc.)
+- Monsters & beasts (any creature names)
+- Organizations (sects, guilds, clans, factions, empires, kingdoms)
+- Locations (cities, towns, villages, mountains, rivers, realms, continents, dimensions)
+- Cultivation & power systems (techniques, skills, spells, arts, stages, realms, ranks)
+- Items & artifacts (weapons, armor, pills, treasures, magical items)
+- Concepts & terminology (any world-specific terms, system terms, status windows)
+- Relationships & romance terms (lovers, spouses, titles used between characters)
+
+Return ONLY a valid JSON object where keys are English terms and values are Burmese transliterations or translations:
+{
+  "English Term": "မြန်မာဘာသာ"
+}
+
+No markdown, no explanation, just raw JSON.
+
+Chapter:
+${englishText}`;
+
+  try {
+    const raw = await callGemini(prompt, apiKey, 1, 2);
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch(err){
+    log(`   Glossary extraction error: ${err.message}`, 'info');
+    return null;
+  }
+}
+
+function mergeNewGlossaryTerms(newTerms){
+  if(!newTerms) return 0;
+  const existingEn = new Set(state.glossary.map(g => g.en.toLowerCase()));
+  let added = 0;
+  for(const [en, mm] of Object.entries(newTerms)){
+    if(en && mm && !existingEn.has(en.toLowerCase())){
+      state.glossary.push({en, mm});
+      existingEn.add(en.toLowerCase());
+      added++;
+    }
+  }
+  return added;
+}
+
+// Split very long chapters into safe-sized pieces, on paragraph boundaries
+function splitIntoChunks(text, maxChars=12000){
+  if(text.length <= maxChars) return [text];
+  const paragraphs = text.split(/\n\s*\n/);
+  const chunks = [];
+  let current = '';
+  for(const p of paragraphs){
+    if((current + '\n\n' + p).length > maxChars && current){
+      chunks.push(current);
+      current = p;
+    } else {
+      current = current ? current + '\n\n' + p : p;
+    }
+  }
+  if(current) chunks.push(current);
+  return chunks;
+}
+
+/* =========================================================
+   MAIN TRANSLATE LOOP
+========================================================= */
+$('btnTranslate').addEventListener('click', async () => {
+  if(state.isTranslating) return;
+  const apiKey = $('geminiKey').value.trim();
+  if(!apiKey){ alert('Gemini API key ထည့်ပါ'); return; }
+  if(!state.chapters.length){ alert('Source ဖိုလ်ဒါထဲ .txt ဖိုင် မတွေ့ပါ'); return; }
+  if(!state.glossary.some(g => g.en && g.mm)){
+    const proceed = confirm('Glossary ထဲ entry မရှိသေးပါ — ဆက်လက်ပြန်ဆိုလိုပါသလား?');
+    if(!proceed) return;
+  }
+
+  const autoGlossary = $('optAutoGlossary').checked;
+  const qualityCheck = $('optQualityCheck').checked;
+
+  state.isTranslating = true;
+  state.stopRequested = false;
+  $('btnTranslate').disabled = true;
+  $('btnStop').disabled = false;
+
+  const todo = state.chapters.filter(c => !state.translatedNames.has(c.name));
+  let doneCount = state.translatedNames.size;
+  const total = state.chapters.length;
+
+  log(`ဘာသာပြန်စတင်မယ် — ကျန် ${todo.length} ဖိုင် (auto-glossary: ${autoGlossary ? 'on' : 'off'}, quality check: ${qualityCheck ? 'on' : 'off'})`, 'info');
+
+  for(const chapter of todo){
+    if(state.stopRequested){
+      log('User ရပ်လိုက်ပါပြီ', 'info');
+      break;
+    }
+    try {
+      log(`ဖတ်နေသည်: ${chapter.name}`, 'info');
+      const sourceText = await readFileContent(chapter.id);
+      const chunks = splitIntoChunks(sourceText);
+      const isSingleChunk = chunks.length === 1;
+
+      let translatedParts = [];
+      for(let i=0; i<chunks.length; i++){
+        if(state.stopRequested) break;
+        if(chunks.length > 1) log(`  ${chapter.name} — chunk ${i+1}/${chunks.length} ပြန်နေသည်`, 'info');
+
+        let translated = await translateChunk(chunks[i], apiKey);
+
+        // Quality check + one retry — only meaningful per-chunk when there's
+        // a single chunk (chapter-level comparison); for multi-chunk chapters
+        // we still run the cheap length check per chunk.
+        if(qualityCheck && !state.stopRequested){
+          let needRetry = isTranslationTooShort(chunks[i], translated);
+          if(needRetry){
+            log(`  ⚠️ Character count ကျဉ်းနေတယ် → ထပ်ပြန်မယ်`, 'info');
+          } else if(isSingleChunk){
+            log(`  🔍 AI quality check လုပ်နေသည်...`, 'info');
+            needRetry = await isTranslationIncompleteByAI(chunks[i], translated, apiKey);
+            if(needRetry) log(`  ⚠️ AI: INCOMPLETE → ထပ်ပြန်မယ်`, 'info');
+            else log(`  ✓ AI: COMPLETE`, 'info');
+          }
+          if(needRetry && !state.stopRequested){
+            log(`  🔄 ထပ်ပြန်နေသည်...`, 'info');
+            translated = await translateChunk(chunks[i], apiKey);
+          }
+        }
+
+        translatedParts.push(translated.trim());
+      }
+      if(state.stopRequested) break;
+
+      const fullTranslation = translatedParts.join('\n\n');
+      await uploadTextFile(state.targetFolderId, chapter.name, fullTranslation);
+      state.translatedNames.add(chapter.name);
+      doneCount++;
+      updateProgress(doneCount, total);
+      log(`✓ ${chapter.name} ပြီးပါပြီ`, 'ok');
+
+      // Auto-glossary: extract new terms from this chapter and merge + save
+      if(autoGlossary && !state.stopRequested){
+        log(`  🧠 ဝေါဟာရအသစ်များ ရှာနေသည်...`, 'info');
+        const newTerms = await extractGlossaryTerms(sourceText, apiKey);
+        const added = mergeNewGlossaryTerms(newTerms);
+        if(added > 0){
+          renderGlossary();
+          try {
+            const content = JSON.stringify(state.glossary, null, 2);
+            const result = await uploadTextFile(state.targetFolderId, 'glossary.json', content, state.glossaryFileId);
+            state.glossaryFileId = result.id;
+            log(`  📖 Glossary update — အသစ် ${added} ခု (စုစုပေါင်း ${state.glossary.length})`, 'info');
+          } catch(err){
+            log(`  Glossary save error: ${err.message}`, 'err');
+          }
+        }
+      }
+    } catch(err){
+      log(`✕ ${chapter.name} — မအောင်မြင်ပါ: ${err.message}`, 'err');
+      // continue to next chapter rather than aborting entirely
+    }
+  }
+
+  state.isTranslating = false;
+  $('btnTranslate').disabled = false;
+  $('btnStop').disabled = true;
+  log('ဆုံးပါပြီ — Drive ကို ပြန်စစ်ကြည့်ပါ', 'info');
+});
+
+$('btnStop').addEventListener('click', () => {
+  state.stopRequested = true;
+  $('btnStop').disabled = true;
+});
+
+</script>
+</body>
+</html>
