@@ -138,6 +138,10 @@
   .log-row{padding:1px 0;}
 
   details summary{cursor:pointer;font-size:0.85rem;color:var(--muted);margin-bottom:8px;}
+  .gloss-count{font-size:0.78rem;font-weight:600;color:var(--accent);text-transform:none;letter-spacing:0;}
+  .gloss-explain{margin-bottom:10px;}
+  .gloss-explain summary{font-weight:600;color:var(--ink);}
+  .gloss-table-wrap summary{font-weight:600;color:var(--ink);}
   textarea.glossary-import{
     width:100%;min-height:80px;font-family:var(--mono);font-size:0.8rem;
     padding:10px;border:1px solid var(--line);border-radius:7px;background:var(--paper-2);
@@ -194,15 +198,24 @@
 
   <!-- STEP 3: Glossary -->
   <div class="card step-disabled" id="step3">
-    <h2><span class="num">3</span> Glossary (နာမည်၊ system terms၊ skills စသည်)</h2>
-    <p class="hint">ဒီစာရင်းမှာ ဇာတ်ကောင်အမည်၊ နေရာအမည်တွေ့သာမက — title/honorific, race, sect/organization, cultivation realm/stage, skill/technique, item, system term — အကုန်ပါနိုင်ပါတယ်။ Cap မထားပါ — entry ဘယ်လိုများများ Gemini ကို ဘာသာပြန်တိုင်း အကုန်ထည့်ပေးမှာဖြစ်ပြီး၊ အပိုင်းမည်မျှ ရှေ့ရောက်နေပါစေ နာမည်/term တွေ မပြောင်းတော့ပါ။</p>
+    <h2><span class="num">3</span> Glossary <span id="glossCount" class="gloss-count">(0 entries)</span></h2>
+    <details class="gloss-explain">
+      <summary>ဒီစာရင်းထဲ ဘာပါလဲ (နှိပ်ကြည့်ပါ)</summary>
+      <p class="hint">ဇာတ်ကောင်အမည်၊ နေရာအမည်တွေ့သာမက — title/honorific, race, sect/organization, cultivation realm/stage, skill/technique, item, system term — အကုန်ပါနိုင်ပါတယ်။ Cap မထားပါ — entry ဘယ်လိုများများ Gemini ကို ဘာသာပြန်တိုင်း အကုန်ထည့်ပေးမှာဖြစ်ပြီး၊ အပိုင်းမည်မျှ ရှေ့ရောက်နေပါစေ နာမည်/term တွေ မပြောင်းတော့ပါ။</p>
+    </details>
 
-    <table class="gloss" id="glossTable">
-      <thead><tr><th style="width:42%">English</th><th style="width:42%">Myanmar</th><th></th></tr></thead>
-      <tbody id="glossBody"></tbody>
-    </table>
-    <div class="btn-row">
-      <button class="btn-ghost" id="btnAddRow">+ Row တိုး</button>
+    <details class="gloss-table-wrap">
+      <summary>Entry များကို ကြည့်/ပြင်ရန် (နှိပ်ကြည့်ပါ)</summary>
+      <table class="gloss" id="glossTable">
+        <thead><tr><th style="width:42%">English</th><th style="width:42%">Myanmar</th><th></th></tr></thead>
+        <tbody id="glossBody"></tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn-ghost" id="btnAddRow">+ Row တိုး</button>
+      </div>
+    </details>
+
+    <div class="btn-row" style="margin-top:10px;">
       <button class="btn-primary" id="btnSaveGlossary">Glossary ကို Drive ထဲ သိမ်းမယ်</button>
     </div>
 
@@ -486,6 +499,9 @@ function renderFolderInfo(){
    GLOSSARY UI
 ========================================================= */
 function renderGlossary(){
+  const countEl = $('glossCount');
+  if(countEl) countEl.textContent = `(${state.glossary.length} entries)`;
+
   const tbody = $('glossBody');
   tbody.innerHTML = '';
   state.glossary.forEach((row, idx) => {
@@ -708,17 +724,17 @@ Respond with ONLY one word:
 - "COMPLETE" if the translation covers all the content fully
 - "INCOMPLETE" if the translation is summarized, condensed, or missing large parts
 
-Original English (first 500 chars):
-${englishText.slice(0,500)}
+Original English (first 600 chars):
+${englishText.slice(0,600)}
 
-Burmese Translation (first 500 chars):
-${translatedText.slice(0,500)}
+Burmese Translation (first 600 chars):
+${translatedText.slice(0,600)}
 
-Original English (last 500 chars):
-${englishText.slice(-500)}
+Original English (last 600 chars):
+${englishText.slice(-600)}
 
-Burmese Translation (last 500 chars):
-${translatedText.slice(-500)}
+Burmese Translation (last 600 chars):
+${translatedText.slice(-600)}
 
 Answer (COMPLETE or INCOMPLETE):`;
 
@@ -782,24 +798,6 @@ function mergeNewGlossaryTerms(newTerms){
   return added;
 }
 
-// Split very long chapters into safe-sized pieces, on paragraph boundaries
-function splitIntoChunks(text, maxChars=12000){
-  if(text.length <= maxChars) return [text];
-  const paragraphs = text.split(/\n\s*\n/);
-  const chunks = [];
-  let current = '';
-  for(const p of paragraphs){
-    if((current + '\n\n' + p).length > maxChars && current){
-      chunks.push(current);
-      current = p;
-    } else {
-      current = current ? current + '\n\n' + p : p;
-    }
-  }
-  if(current) chunks.push(current);
-  return chunks;
-}
-
 /* =========================================================
    MAIN TRANSLATE LOOP
 ========================================================= */
@@ -835,47 +833,43 @@ $('btnTranslate').addEventListener('click', async () => {
     try {
       log(`ဖတ်နေသည်: ${chapter.name}`, 'info');
       const sourceText = await readFileContent(chapter.id);
-      const chunks = splitIntoChunks(sourceText);
-      const isSingleChunk = chunks.length === 1;
 
-      let translatedParts = [];
-      for(let i=0; i<chunks.length; i++){
-        if(state.stopRequested) break;
-        if(chunks.length > 1) log(`  ${chapter.name} — chunk ${i+1}/${chunks.length} ပြန်နေသည်`, 'info');
+      // ── Translate (Call 1) — whole file in one request, no chunking ──
+      let translated = await translateChunk(sourceText, apiKey);
+      log(`  ✅ ${chapter.name} ပြန်ပြီးပါပြီ`, 'info');
+      await sleep(10000);
 
-        let translated = await translateChunk(chunks[i], apiKey);
-
-        // Quality check + one retry — only meaningful per-chunk when there's
-        // a single chunk (chapter-level comparison); for multi-chunk chapters
-        // we still run the cheap length check per chunk.
-        if(qualityCheck && !state.stopRequested){
-          let needRetry = isTranslationTooShort(chunks[i], translated);
-          if(needRetry){
-            log(`  ⚠️ Character count ကျဉ်းနေတယ် → ထပ်ပြန်မယ်`, 'info');
-          } else if(isSingleChunk){
-            log(`  🔍 AI quality check လုပ်နေသည်...`, 'info');
-            needRetry = await isTranslationIncompleteByAI(chunks[i], translated, apiKey);
-            if(needRetry) log(`  ⚠️ AI: INCOMPLETE → ထပ်ပြန်မယ်`, 'info');
-            else log(`  ✓ AI: COMPLETE`, 'info');
-          }
-          if(needRetry && !state.stopRequested){
-            log(`  🔄 ထပ်ပြန်နေသည်...`, 'info');
-            translated = await translateChunk(chunks[i], apiKey);
-          }
+      // ── Quality check (Call 2, optional) ──
+      if(qualityCheck && !state.stopRequested){
+        let needRetry = isTranslationTooShort(sourceText, translated);
+        if(needRetry){
+          log(`  ⚠️ Character count ကျဉ်းနေတယ် → ထပ်ပြန်မယ်`, 'info');
+        } else {
+          log(`  🔍 AI quality check လုပ်နေသည်...`, 'info');
+          needRetry = await isTranslationIncompleteByAI(sourceText, translated, apiKey);
+          if(needRetry) log(`  ⚠️ AI: INCOMPLETE → ထပ်ပြန်မယ်`, 'info');
+          else log(`  ✓ AI: COMPLETE`, 'info');
         }
+        await sleep(10000);
 
-        translatedParts.push(translated.trim());
+        // ── Retry (Call 3, only if needed) ──
+        if(needRetry && !state.stopRequested){
+          log(`  🔄 ထပ်ပြန်နေသည်...`, 'info');
+          translated = await translateChunk(sourceText, apiKey);
+          log(`  ✅ ထပ်ပြန်ပြီးပါပြီ`, 'info');
+          await sleep(10000);
+        }
       }
       if(state.stopRequested) break;
 
-      const fullTranslation = translatedParts.join('\n\n');
-      await uploadTextFile(state.targetFolderId, chapter.name, fullTranslation);
+      // ── Save translated file ──
+      await uploadTextFile(state.targetFolderId, chapter.name, translated.trim());
       state.translatedNames.add(chapter.name);
       doneCount++;
       updateProgress(doneCount, total);
       log(`✓ ${chapter.name} ပြီးပါပြီ`, 'ok');
 
-      // Auto-glossary: extract new terms from this chapter and merge + save
+      // ── Auto-glossary (Call 3 or 4) — extract new terms and merge + save ──
       if(autoGlossary && !state.stopRequested){
         log(`  🧠 ဝေါဟာရအသစ်များ ရှာနေသည်...`, 'info');
         const newTerms = await extractGlossaryTerms(sourceText, apiKey);
@@ -891,6 +885,7 @@ $('btnTranslate').addEventListener('click', async () => {
             log(`  Glossary save error: ${err.message}`, 'err');
           }
         }
+        await sleep(15000);
       }
     } catch(err){
       log(`✕ ${chapter.name} — မအောင်မြင်ပါ: ${err.message}`, 'err');
